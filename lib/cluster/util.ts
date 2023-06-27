@@ -10,6 +10,7 @@ export interface RedisOptions {
   host: string;
   username?: string;
   password?: string;
+  nodeId?: string;
   [key: string]: any;
 }
 
@@ -25,17 +26,25 @@ export interface GroupedSrvRecords {
 export function getNodeKey(node: RedisOptions): NodeKey {
   node.port = node.port || 6379;
   node.host = node.host || "127.0.0.1";
-  return node.host + ":" + node.port;
+  node.nodeId = node.nodeId || '0'
+  return node.host + ":" + node.port + ":" + node.nodeId;
 }
 
 export function nodeKeyToRedisOptions(nodeKey: NodeKey): RedisOptions {
-  const portIndex = nodeKey.lastIndexOf(":");
-  if (portIndex === -1) {
+  const idIndex = nodeKey.lastIndexOf(":");
+  if (idIndex === -1) {
     throw new Error(`Invalid node key ${nodeKey}`);
   }
+
+  const parts = nodeKey.split(':');
+  if (parts.length < 3) {
+    throw new Error(`Invalid node key ${nodeKey}`);
+  }
+
   return {
-    host: nodeKey.slice(0, portIndex),
-    port: Number(nodeKey.slice(portIndex + 1)),
+    host: parts.slice(0, -2).join(':'),
+    port: Number(parts[parts.length - 2]),
+    nodeId: parts[parts.length - 1],
   };
 }
 
